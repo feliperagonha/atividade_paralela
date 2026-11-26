@@ -21,7 +21,7 @@ public class SupervisoraDeConexao extends Thread {
 
             try (ObjectInputStream entrada = new ObjectInputStream(socket.getInputStream())) {
                 entrada.setObjectInputFilter(SupervisoraDeConexao::filtrarEntrada);
-                atender(entrada, saida);
+                atender(new Parceiro(entrada, saida));
             }
         } catch (EOFException fimDaConexao) {
             // O cliente fechou a conexão antes de enviar PedidoParaSair.
@@ -32,11 +32,11 @@ public class SupervisoraDeConexao extends Thread {
         }
     }
 
-    private void atender(ObjectInputStream entrada, ObjectOutputStream saida)
+    private void atender(Parceiro usuario)
             throws IOException, ClassNotFoundException, InterruptedException {
         byte[] ultimoResultado = null;
         while (true) {
-            Object pedido = entrada.readObject();
+            Comunicado pedido = usuario.envie();
             Comunicado resposta;
 
             if (pedido instanceof Comunicado.PedidoParaSair) {
@@ -55,9 +55,7 @@ public class SupervisoraDeConexao extends Thread {
                 throw new IOException("Pedido inválido ou resultado indisponível");
             }
 
-            saida.writeObject(resposta);
-            saida.reset();
-            saida.flush();
+            usuario.receba(resposta);
         }
     }
 
